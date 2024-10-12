@@ -2,21 +2,29 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../../../supabaseClient';
+import { User } from '@supabase/supabase-js'; // Import the User type from Supabase
 
 const Dashboard = () => {
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null); // Define the type as User | null
   const [query, setQuery] = useState('');
   const [response, setResponse] = useState('');
 
   useEffect(() => {
-    const session = supabase.auth.session();
-    if (!session) {
-      router.push('/login');
-    } else {
-      setUser(session.user);
-    }
+    const getSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error('Error fetching session:', error);
+        router.push('/login');
+      } else if (data.session) {
+        setUser(data.session.user);
+      } else {
+        router.push('/login');
+      }
+    };
+  
+    getSession();
   }, [router]);
 
   const handleQuery = async () => {
