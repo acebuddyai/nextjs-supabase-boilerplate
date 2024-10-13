@@ -1,39 +1,73 @@
 "use client";
-
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../../../supabaseClient';
-import { User } from '@supabase/supabase-js'; // Import the User type from Supabase
+import { useSessionContext, useSupabaseClient } from '@supabase/auth-helpers-react'; 
+import { Session, User } from '@supabase/supabase-js';
 
 const Dashboard = () => {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null); // Define the type as User | null
+  const { session: contextSession } = useSessionContext(); // Session from context
+  const supabase = useSupabaseClient(); // Supabase client to manually fetch session
+  const [user, setUser] = useState<User | null>(null); // Track the user object
+  const [query, setQuery] = useState(''); // Track the query input
+  const [response, setResponse] = useState(''); // Track the AI API response
 
   useEffect(() => {
-    const getSession = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error('Error fetching session:', error);
-        router.push('/login');
-      } else if (data.session) {
-        setUser(data.session.user);
+    const fetchSession = async () => {
+      if (contextSession?.user) {
+        // If session exists in context, use it
+        setUser(contextSession.user);
       } else {
-        router.push('/login');
+        // Try fetching session manually using Supabase auth
+        const { data, error } = await supabase.auth.getSession();
+        if (data?.session?.user) {
+          setUser(data.session.user);
+        } else {
+          console.error('Error fetching session:', error);
+          router.push('/login'); // Redirect to login if no session found
+        }
       }
     };
-  
-    getSession();
-  }, [router]);
 
-  if (!user) return null;
+    fetchSession();
+  }, [contextSession, router, supabase]); // Ensure dependencies include context and router
+
+  const handleQuery = async () => {
+    const res = await fetch('/api/query', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query }),
+    });
+    const data = await res.json();
+    setResponse(data.response);
+  };
+
+  if (!user) return <div>Loading...</div>;
 
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold">Welcome to your Dashboard</h1>
       <p className="text-gray-500">Hello, {user.email}</p>
       <div className="mt-4">
-        <p>This is your dashboard. Here you can manage your account and view your data.</p>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Ask something..."
+          className="border p-2 w-full"
+        />
+        <button onClick={handleQuery} className="mt-2 p-2 bg-blue-500 text-white">
+          Submit
+        </button>
       </div>
+      {response && (
+        <div className="mt-4 p-4 border">
+          <h2 className="text-xl font-bold">Response:</h2>
+          <p>{response}</p>
+        </div>
+      )}
     </div>
   );
 };
