@@ -58,7 +58,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: falconResult.error || 'Something went wrong with Falcon' }, { status: 500 });
     }
 
-    const generatedText = falconResult.generated_text?.trim(); // Ensure the correct field is accessed and trimmed
+    const generatedTextArray = falconResult.map((item: any) => item.generated_text); // Ensure the correct field is accessed
+    const generatedText = Array.isArray(generatedTextArray) ? generatedTextArray.join(' ').trim() : '';
 
     if (!generatedText) {
       return NextResponse.json({ error: 'Falcon response is empty' }, { status: 400 });
