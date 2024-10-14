@@ -25,4 +25,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ response: 'Error calling AI API' }, { status: 500 });
   }
 }
-
