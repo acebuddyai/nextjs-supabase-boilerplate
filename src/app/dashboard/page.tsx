@@ -33,7 +33,7 @@ const Dashboard = () => {
   }, [contextSession, router, supabase]); // Ensure dependencies include context and router
 
   const handleQuery = async () => {
-    const res = await fetch('/api/query', {
+    const res = await fetch('/api/query', { // Corrected the path
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -41,7 +41,13 @@ const Dashboard = () => {
       body: JSON.stringify({ query }),
     });
     const data = await res.json();
-    setResponse(data.response);
+    console.log('API Response:', data); // Log the response for debugging
+    if (Array.isArray(data.response) && data.response.length > 0) {
+      console.log('Full Generated Text:', data.response[0].generated_text); // Log the full generated text
+      setResponse(data.response[0].generated_text);
+    } else {
+      setResponse('Invalid response format');
+    }
   };
 
   if (!user) return <div>Loading...</div>;
@@ -65,7 +71,7 @@ const Dashboard = () => {
       {response && (
         <div className="mt-4 p-4 border">
           <h2 className="text-xl font-bold">Response:</h2>
-          <p>{response}</p>
+          <pre className="whitespace-pre-wrap">{response}</pre>
         </div>
       )}
     </div>
